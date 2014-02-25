@@ -3,7 +3,7 @@
 // Definitions by: Boris Yankov <https://github.com/borisyankov/>
 // DefinitelyTyped: https://github.com/borisyankov/DefinitelyTyped
 
-/* =================== USAGE ===================
+/* =================== USAGE =================== 
 
     import express = require('express');
     var app = express();
@@ -60,6 +60,106 @@ declare module "express" {
              * @param options
              */
             new (method: string, path: string, callbacks: Function[], options: any): Route;
+        }
+
+        interface IRouter<T> {
+            /**
+             * Map the given param placeholder `name`(s) to the given callback(s).
+             *
+             * Parameter mapping is used to provide pre-conditions to routes
+             * which use normalized placeholders. For example a _:user_id_ parameter
+             * could automatically load a user's information from the database without
+             * any additional code,
+             *
+             * The callback uses the samesignature as middleware, the only differencing
+             * being that the value of the placeholder is passed, in this case the _id_
+             * of the user. Once the `next()` function is invoked, just like middleware
+             * it will continue on to execute the route, or subsequent parameter functions.
+             *
+             *      app.param('user_id', function(req, res, next, id){
+             *        User.find(id, function(err, user){
+             *          if (err) {
+             *            next(err);
+             *          } else if (user) {
+             *            req.user = user;
+             *            next();
+             *          } else {
+             *            next(new Error('failed to load user'));
+             *          }
+             *        });
+             *      });
+             *
+             * @param name
+             * @param fn
+             */
+            param(name: string, fn: Function): T;
+
+            param(name: string[], fn: Function): T;
+
+            /**
+             * Special-cased "all" method, applying the given route `path`,
+             * middleware, and callback to _every_ HTTP method.
+             *
+             * @param path
+             * @param fn
+             */
+            all(path: string, fn?: (req: Request, res: Response, next: Function) => any): T;
+
+            all(path: string, ...callbacks: Function[]): void;
+
+            get(name: string, ...handlers: RequestFunction[]): T;
+
+            get(name: RegExp, ...handlers: RequestFunction[]): T;
+
+            post(name: string, ...handlers: RequestFunction[]): T;
+
+            post(name: RegExp, ...handlers: RequestFunction[]): T;
+
+            put(name: string, ...handlers: RequestFunction[]): T;
+
+            put(name: RegExp, ...handlers: RequestFunction[]): T;
+
+            del(name: string, ...handlers: RequestFunction[]): T;
+
+            del(name: RegExp, ...handlers: RequestFunction[]): T;
+            
+            patch(name: string, ...handlers: RequestFunction[]): T;
+ 
+            patch(name: RegExp, ...handlers: RequestFunction[]): T;
+        }
+
+        export class Router implements IRouter<Router> {
+          new (options?: any): Router;
+
+          middleware (): any;
+
+          param(name: string, fn: Function): Router;
+
+          param(name: any[], fn: Function): Router;
+
+          all(path: string, fn?: (req: Request, res: Response, next: Function) => any): Router;
+
+          all(path: string, ...callbacks: Function[]): void;
+
+          get(name: string, ...handlers: RequestFunction[]): Router;
+
+          get(name: RegExp, ...handlers: RequestFunction[]): Router;
+
+          post(name: string, ...handlers: RequestFunction[]): Router;
+
+          post(name: RegExp, ...handlers: RequestFunction[]): Router;
+
+          put(name: string, ...handlers: RequestFunction[]): Router;
+
+          put(name: RegExp, ...handlers: RequestFunction[]): Router;
+
+          del(name: string, ...handlers: RequestFunction[]): Router;
+
+          del(name: RegExp, ...handlers: RequestFunction[]): Router;
+          
+          patch(name: string, ...handlers: RequestFunction[]): Router;
+ 
+          patch(name: RegExp, ...handlers: RequestFunction[]): Router;
         }
 
         interface Handler {
@@ -125,6 +225,8 @@ declare module "express" {
             success: string;
 
             views: any;
+
+            count: number;
         }
 
         interface Request {
@@ -155,6 +257,8 @@ declare module "express" {
             get (name: string): string;
 
             header(name: string): string;
+
+            headers: string[];
 
             /**
              * Check if the given `type(s)` is acceptable, returning
@@ -406,6 +510,8 @@ declare module "express" {
 
             user: any;
 
+            authenticatedUser: any;
+
             files: any;
 
             /**
@@ -423,6 +529,8 @@ declare module "express" {
             signedCookies: any;
 
             originalUrl: string;
+
+            url: string;
         }
 
         interface MediaType {
@@ -430,6 +538,11 @@ declare module "express" {
             quality: number;
             type: string;
             subtype:  string;
+        }
+
+        interface Send {
+            (status: number, body?: any): Response;
+            (body: any): Response;
         }
 
         interface Response extends http.ServerResponse {
@@ -465,11 +578,7 @@ declare module "express" {
              *     res.send(404, 'Sorry, cant find that');
              *     res.send(404);
              */
-            send(status: number): Response;
-
-            send(bodyOrStatus: any): Response;
-
-            send(status: number, body: any): Response;
+            send: Send;
 
             /**
              * Send JSON response.
@@ -481,11 +590,7 @@ declare module "express" {
              *     res.json(500, 'oh noes!');
              *     res.json(404, 'I dont have that');
              */
-            json(status: number): Response;
-
-            json(bodyOrStatus: any): Response;
-
-            json(status: number, body: any): Response;
+            json: Send;
 
             /**
              * Send JSON response with JSONP callback support.
@@ -497,11 +602,7 @@ declare module "express" {
              *     res.jsonp(500, 'oh noes!');
              *     res.jsonp(404, 'I dont have that');
              */
-            jsonp(status: number): Response;
-
-            jsonp(bodyOrStatus: any): Response;
-
-            jsonp(status: number, body: any): Response;
+            jsonp: Send;
 
             /**
              * Transfer the file at the given `path`.
@@ -780,7 +881,7 @@ declare module "express" {
              */
 
             render(view: string, options?: Object, callback?: (err: Error, html: string) => void ): void;
-
+            
             render(view: string, callback?: (err: Error, html: string) => void ): void;
 
             locals: any;
@@ -792,7 +893,7 @@ declare module "express" {
             (req: Request, res: Response, next: Function): any;
         }
 
-        interface Application {
+        interface Application extends IRouter<Application> {
             /**
              * Initialize the server.
              *
@@ -849,35 +950,6 @@ declare module "express" {
              */
             engine(ext: string, fn: Function): Application;
 
-            /**
-             * Map the given param placeholder `name`(s) to the given callback(s).
-             *
-             * Parameter mapping is used to provide pre-conditions to routes
-             * which use normalized placeholders. For example a _:user_id_ parameter
-             * could automatically load a user's information from the database without
-             * any additional code,
-             *
-             * The callback uses the samesignature as middleware, the only differencing
-             * being that the value of the placeholder is passed, in this case the _id_
-             * of the user. Once the `next()` function is invoked, just like middleware
-             * it will continue on to execute the route, or subsequent parameter functions.
-             *
-             *      app.param('user_id', function(req, res, next, id){
-             *        User.find(id, function(err, user){
-             *          if (err) {
-             *            next(err);
-             *          } else if (user) {
-             *            req.user = user;
-             *            next();
-             *          } else {
-             *            next(new Error('failed to load user'));
-             *          }
-             *        });
-             *      });
-             *
-             * @param name
-             * @param fn
-             */
             param(name: string, fn: Function): Application;
 
             param(name: string[], fn: Function): Application;
@@ -1002,16 +1074,6 @@ declare module "express" {
 
             configure(fn: Function): Application;
 
-            /**
-             * Special-cased "all" method, applying the given route `path`,
-             * middleware, and callback to _every_ HTTP method.
-             *
-             * @param path
-             * @param fn
-             */
-            all(path: string, fn?: (req: Request, res: Response, next: Function) => any): Application;
-
-            all(path: string, ...callbacks: Function[]): void;
 
             /**
              * Render the given view `name` name with `options`
@@ -1029,24 +1091,9 @@ declare module "express" {
              * @param fn
              */
             render(name: string, options?: Object, callback?: (err: Error, html: string) => void): void;
-
+            
             render(name: string, callback: (err: Error, html: string) => void): void;
 
-            get(name: string, ...handlers: RequestFunction[]): any;
-
-            get(name: RegExp, ...handlers: RequestFunction[]): any;
-
-            post(name: string, ...handlers: RequestFunction[]): any;
-
-            post(name: RegExp, ...handlers: RequestFunction[]): any;
-
-            put(name: string, ...handlers: RequestFunction[]): any;
-
-            put(name: RegExp, ...handlers: RequestFunction[]): any;
-
-            del(name: string, ...handlers: RequestFunction[]): any;
-
-            del(name: RegExp, ...handlers: RequestFunction[]): any;
 
             /**
              * Listen for connections.
@@ -1127,11 +1174,11 @@ declare module "express" {
 
         /**
          * Body parser:
-         *
+         * 
          *   Parse request bodies, supports _application/json_,
          *   _application/x-www-form-urlencoded_, and _multipart/form-data_.
          *
-         *   This is equivalent to:
+         *   This is equivalent to: 
          *
          *     app.use(connect.json());
          *     app.use(connect.urlencoded());
@@ -1179,9 +1226,9 @@ declare module "express" {
 
         /**
          * Method Override:
-         *
+         * 
          * Provides faux HTTP method support.
-         *
+         * 
          * Pass an optional `key` to use when checking for
          * a method override, othewise defaults to _\_method_.
          * The original method is available via `req.originalMethod`.
@@ -1213,7 +1260,7 @@ declare module "express" {
 
         /**
          * Session:
-         *
+         * 
          *   Setup session store with the given `options`.
          *
          *   Session data is _not_ saved in the cookie itself, however
@@ -1237,13 +1284,13 @@ declare module "express" {
          * Cookie option:
          *
          *  By default `cookie.maxAge` is `null`, meaning no "expires" parameter is set
-         *  so the cookie becomes a browser-session cookie. When the user closes the
+         *  so the cookie becomes a browser-session cookie. When the user closes the 
          *  browser the cookie (and session) will be removed.
          *
          * ## req.session
          *
          *  To store or access session data, simply use the request property `req.session`,
-         *  which is (generally) serialized as JSON by the store, so nested objects
+         *  which is (generally) serialized as JSON by the store, so nested objects 
          *  are typically fine. For example below is a user-specific view counter:
          *
          *       connect()
@@ -1281,7 +1328,7 @@ declare module "express" {
          *      req.session.destroy(function(err){
          *        // cannot access session here
          *      });
-         *
+         * 
          * ## Session#reload()
          *
          *  Reloads the session data.
@@ -1412,6 +1459,8 @@ declare module "express" {
          * @param callback or username
          * @param realm
          */
+        export function basicAuth(callback: (user: string, pass: string, fn : Function) => void, realm?: string): Handler;
+
         export function basicAuth(callback: (user: string, pass: string) => boolean, realm?: string): Handler;
 
         export function basicAuth(user: string, pass: string, realm?: string): Handler;
@@ -1739,7 +1788,7 @@ declare module "express" {
 
         /**
          * Vhost:
-         *
+         * 
          *   Setup vhost for the given `hostname` and `server`.
          *
          *     connect()
@@ -1748,7 +1797,7 @@ declare module "express" {
          *       .use(connect.vhost('*.com', mainApp))
          *
          *  The `server` may be a Connect server or
-         *  a regular Node `http.Server`.
+         *  a regular Node `http.Server`. 
          *
          * @param hostname
          * @param server
@@ -1758,7 +1807,9 @@ declare module "express" {
         function urlencoded(): any;
 
         function multipart(): any;
+
     }
 
     export = e;
 }
+
